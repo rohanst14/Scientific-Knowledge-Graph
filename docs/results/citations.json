@@ -22,6 +22,94 @@
     "validation_count": 379,
     "candidate_count": 20
   },
+  "robustness": {
+    "design": "Fixed configuration selected on seed 42; overlapping splits are sensitivity checks, not independent external tests.",
+    "splits": [
+      {
+        "seed": 17,
+        "train_count": 1895,
+        "test_count": 813,
+        "baseline": {
+          "accuracy": 0.7675276752767528,
+          "macro_f1": 0.7456238805193312
+        },
+        "graph_features": {
+          "accuracy": 0.8622386223862238,
+          "macro_f1": 0.8427029057043948
+        },
+        "selected_multihop": {
+          "accuracy": 0.8892988929889298,
+          "macro_f1": 0.8711218772056663
+        }
+      },
+      {
+        "seed": 29,
+        "train_count": 1895,
+        "test_count": 813,
+        "baseline": {
+          "accuracy": 0.7761377613776138,
+          "macro_f1": 0.74579877972904
+        },
+        "graph_features": {
+          "accuracy": 0.8659286592865929,
+          "macro_f1": 0.8480166494518043
+        },
+        "selected_multihop": {
+          "accuracy": 0.8917589175891759,
+          "macro_f1": 0.8808940610977954
+        }
+      },
+      {
+        "seed": 73,
+        "train_count": 1895,
+        "test_count": 813,
+        "baseline": {
+          "accuracy": 0.7785977859778598,
+          "macro_f1": 0.7515783473373785
+        },
+        "graph_features": {
+          "accuracy": 0.8831488314883149,
+          "macro_f1": 0.8691805425073437
+        },
+        "selected_multihop": {
+          "accuracy": 0.8929889298892989,
+          "macro_f1": 0.8844455738908128
+        }
+      }
+    ],
+    "summary": {
+      "baseline": {
+        "accuracy": {
+          "mean": 0.7740877408774088,
+          "sd": 0.005812811348404176
+        },
+        "macro_f1": {
+          "mean": 0.7476670025285831,
+          "sd": 0.0033884526104634547
+        }
+      },
+      "graph_features": {
+        "accuracy": {
+          "mean": 0.8704387043870438,
+          "sd": 0.011160850831337613
+        },
+        "macro_f1": {
+          "mean": 0.8533000325545143,
+          "sd": 0.014007209408897945
+        }
+      },
+      "selected_multihop": {
+        "accuracy": {
+          "mean": 0.8913489134891348,
+          "sd": 0.0018788748236801664
+        },
+        "macro_f1": {
+          "mean": 0.8788205040647581,
+          "sd": 0.0068996342233766305
+        }
+      }
+    }
+  },
   "metrics": {
     "observed_works": 2708,
     "external_reference_nodes": 0,
