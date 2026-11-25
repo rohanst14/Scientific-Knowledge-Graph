@@ -6,7 +6,21 @@
 
 Convert controlled scientific sentences into directed, source-tagged triples and explore bounded paths between entities.
 
-## Design
+## Research extension: provenance-aware citation networks
+
+Build a directed scholarly graph from OpenAlex records, identify citation communities via weak components, rank observed works using PageRank and retrieve bounded citation paths with provenance. The default collection target is 300 works; use a saved snapshot for offline reproducibility.
+
+```bash
+pip install -e . -r requirements-research.txt
+python experiments/citation_study.py --download --query "process safety" --limit 300
+# Or use a local OpenAlex JSONL snapshot:
+python experiments/citation_study.py --input data/openalex.jsonl
+python -m unittest discover -s tests -v
+```
+
+See [research protocol](docs/research-protocol.md). The OpenAlex API may require a key; no paid model inference is used. Raw data is not bundled, and no measured real-corpus results are claimed yet.
+
+## Design (original extraction baseline)
 
 Split sentences → match supported relation verbs → normalize entities → build directed adjacency → traverse without cycles.
 
