@@ -13,6 +13,15 @@
     "accuracy": 0.8892988929889298,
     "macro_f1": 0.8864182964045009
   },
+  "selected_multihop": {
+    "accuracy": 0.9077490774907749,
+    "macro_f1": 0.9016078724593264,
+    "depth": 4,
+    "C": 1.0,
+    "validation_macro_f1": 0.8653015380302419,
+    "validation_count": 379,
+    "candidate_count": 20
+  },
   "metrics": {
     "observed_works": 2708,
     "external_reference_nodes": 0,
