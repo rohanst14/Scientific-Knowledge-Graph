@@ -18,13 +18,13 @@ cd Scientific-Knowledge-Graph
 python -m venv .venv
 # Activate the environment for your operating system.
 pip install -e . -r requirements-research.txt
-python experiments/citation_study.py --download --query "process safety" --limit 300
+python experiments/cora_benchmark.py
 python -m unittest discover -s tests -v
 ```
 
 ## Dataset and methodology
 
-OpenAlex metadata; 300-work default collection target or local JSONL snapshot. API credentials may be required.
+The default benchmark uses the public LINQS Cora citation dataset (2,708 publications and 5,429 input citation rows). OpenAlex ingestion remains optional and requires an API key or local snapshot. Compare text-only logistic regression with graph-neighborhood features on a stratified held-out node split; this is transductive evaluation.
 
 Metrics: Observed works, reference nodes, directed edges, weak components and PageRank.
 

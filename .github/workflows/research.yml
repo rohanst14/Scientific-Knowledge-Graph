@@ -26,7 +26,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -e . -r requirements-research.txt
-      - run: python experiments/citation_study.py --download --query "process safety" --limit 300
+      - run: python experiments/cora_benchmark.py
       - uses: actions/upload-artifact@v4
         with:
           name: citation-report
