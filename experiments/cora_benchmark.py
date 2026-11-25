@@ -8,17 +8,15 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score,f1_score
-URL="https://linqs-data.soe.ucsc.edu/public/lbc/cora.tgz"
+URL="https://raw.githubusercontent.com/tkipf/pygcn/master/data/cora/"
 
 def main():
     p=argparse.ArgumentParser();p.add_argument("--output",type=Path,default=Path("results/citations.json"));a=p.parse_args()
-    with urlopen(URL,timeout=90) as response: raw=response.read(20_000_000)
-    with tarfile.open(fileobj=io.BytesIO(raw),mode="r:gz") as tar:
-        def read(name):
-            member=next(m for m in tar.getmembers() if m.name.split("/")[-1]==name and m.isfile())
-            return tar.extractfile(member).read().decode().splitlines()
-        records=[line.split() for line in read("cora.content") if line.strip()]
-        refs=[line.split() for line in read("cora.cites") if line.strip()]
+    with urlopen(URL+"cora.content",timeout=90) as response: content=response.read(20_000_000)
+    with urlopen(URL+"cora.cites",timeout=90) as response: cites=response.read(20_000_000)
+    raw=content+b"\n"+cites
+    records=[line.split() for line in content.decode().splitlines() if line.strip()]
+    refs=[line.split() for line in cites.decode().splitlines() if line.strip()]
     ids=[r[0] for r in records];labels=np.array([r[-1] for r in records]);x=np.array([r[1:-1] for r in records],dtype=np.float32)
     if len(ids)!=2708 or len(set(ids))!=2708 or len(refs)!=5429: raise ValueError("Unexpected Cora corpus dimensions")
     g=nx.DiGraph()
