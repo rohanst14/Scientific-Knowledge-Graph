@@ -19,9 +19,10 @@ Cora: 2,708 publications, 5,429 directed citation edges, 1,895 training nodes an
 | Method | Accuracy | Macro-F1 |
 |---|---:|---:|
 | Text-only logistic regression | 78.35% | 76.62% |
-| Graph-neighborhood features + logistic regression | 88.93% | 88.64% |
+| One-hop graph features + logistic regression | 88.93% | 88.64% |
+| Validation-selected multi-hop graph features | **90.77%** | **90.16%** |
 
-[Measured report](docs/results/citations.json) · [Completed benchmark workflow](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45698062515). Results reflect a single stratified transductive split (seed 42), not an inductive or multi-seed benchmark.
+[Measured report](docs/results/citations.json) · [Completed benchmark workflow](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45699272769). The table records the seed-42 transductive benchmark; graph-enhanced accuracy improved by 12.42 percentage points over text-only classification. The experiment additionally measures sensitivity across three overlapping stratified splits with the fixed selected configuration. These are not independent external test sets.
 
 ## Installation and execution
 
@@ -37,7 +38,7 @@ python -m unittest discover -s tests -v
 
 ## Model selection
 
-The benchmark also evaluates normalized multi-hop graph features (depth 0–4) and four regularization settings. Selection uses macro-F1 on a development subset of training nodes; the selected model is refitted on training nodes before evaluation on the unchanged held-out split. The measured JSON report includes the chosen configuration.
+The benchmark also evaluates normalized multi-hop graph features (depth 0–4) and four regularization settings. Selection uses macro-F1 on a development subset of training nodes; the selected model is refitted on training nodes before evaluation on the unchanged held-out split. The measured JSON report includes the chosen configuration. The additional sensitivity study uses seeds 17, 29 and 73 without retuning the fixed configuration, reporting mean and sample standard deviation.
 
 ## Dataset and methodology
 

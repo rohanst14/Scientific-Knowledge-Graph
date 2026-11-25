@@ -1,5 +1,5 @@
 """Credential-free Cora citation benchmark; original IDs and edge provenance."""
-import argparse,hashlib,io,json,tarfile
+import argparse,hashlib,json
 from pathlib import Path
 from urllib.request import urlopen
 from collections import Counter
@@ -57,6 +57,18 @@ def main():
         model=LogisticRegression(max_iter=1000,random_state=42).fit(features[train],labels[train])
         pred=model.predict(features[test])
         return {"accuracy":float(accuracy_score(labels[test],pred)),"macro_f1":float(f1_score(labels[test],pred,average="macro"))}
-    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":fit(x),"graph_features":fit(z),"selected_multihop":advanced,"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
-    a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2,allow_nan=False));print(json.dumps({k:report[k] for k in ("dataset","train_count","test_count","baseline","graph_features")},indent=2))
+    # Fixed-config sensitivity study on additional stratified splits.
+    # These splits overlap; standard deviations describe variability, not confidence intervals.
+    robustness=[]
+    for seed in (17,29,73):
+        tr,te=train_test_split(np.arange(len(ids)),test_size=.3,random_state=seed,stratify=labels)
+        row={"seed":seed,"train_count":len(tr),"test_count":len(te)}
+        for key,features,penalty in (("baseline",x,1.),("graph_features",z,1.),("selected_multihop",representations[depth],c)):
+            est=LogisticRegression(C=penalty,max_iter=1500,random_state=seed).fit(features[tr],labels[tr])
+            pr=est.predict(features[te])
+            row[key]={"accuracy":float(accuracy_score(labels[te],pr)),"macro_f1":float(f1_score(labels[te],pr,average="macro"))}
+        robustness.append(row)
+    summary={key:{metric:{"mean":float(np.mean([r[key][metric] for r in robustness])),"sd":float(np.std([r[key][metric] for r in robustness],ddof=1))} for metric in ("accuracy","macro_f1")} for key in ("baseline","graph_features","selected_multihop")}
+    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":fit(x),"graph_features":fit(z),"selected_multihop":advanced,"robustness":{"design":"Fixed configuration selected on seed 42; overlapping splits are sensitivity checks, not independent external tests.","splits":robustness,"summary":summary},"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
+    a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2,allow_nan=False));print(json.dumps({k:report[k] for k in ("dataset","train_count","test_count","baseline","graph_features","selected_multihop","robustness")},indent=2))
 if __name__=="__main__":main()

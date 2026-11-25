@@ -12,15 +12,21 @@ jobs:
       - run: python -m unittest discover -s tests -v
       - run: python -m compileall -q src experiments
       - run: node --check docs/dashboard.js
+      - run: python tests/check_report.py docs/results/citations.json
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/dashboard_smoke.cjs
   benchmark:
     needs: test
     permissions:
       contents: write
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
-      OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,6 +34,7 @@ jobs:
           python-version: '3.11'
       - run: pip install -e . -r requirements-research.txt
       - run: python experiments/cora_benchmark.py
+      - run: python tests/check_report.py results/citations.json
       - uses: actions/upload-artifact@v4
         with:
           name: citation-report
