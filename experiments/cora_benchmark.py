@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score,f1_score
+from scientific_knowledge_graph.evaluation import evaluate_probabilities,paired_outcomes
 URL="https://raw.githubusercontent.com/tkipf/pygcn/master/data/cora/"
 
 def main():
@@ -51,12 +52,11 @@ def main():
     best=max(candidates,key=lambda item:(item[0],-item[1],-item[2]))
     _,depth,c=best
     selected=LogisticRegression(C=c,max_iter=1500,random_state=42).fit(representations[depth][train],labels[train])
-    pred=selected.predict(representations[depth][test])
-    advanced={"accuracy":float(accuracy_score(labels[test],pred)),"macro_f1":float(f1_score(labels[test],pred,average="macro")),"depth":depth,"C":c,"validation_macro_f1":best[0],"validation_count":len(val),"candidate_count":len(candidates)}
+    advanced,advanced_pred=evaluate_probabilities(labels[test],selected.predict_proba(representations[depth][test]),selected.classes_)
+    advanced.update({"depth":depth,"C":c,"validation_macro_f1":best[0],"validation_count":len(val),"candidate_count":len(candidates)})
     def fit(features):
         model=LogisticRegression(max_iter=1000,random_state=42).fit(features[train],labels[train])
-        pred=model.predict(features[test])
-        return {"accuracy":float(accuracy_score(labels[test],pred)),"macro_f1":float(f1_score(labels[test],pred,average="macro"))}
+        return evaluate_probabilities(labels[test],model.predict_proba(features[test]),model.classes_)
     # Fixed-config sensitivity study on additional stratified splits.
     # These splits overlap; standard deviations describe variability, not confidence intervals.
     robustness=[]
@@ -69,6 +69,9 @@ def main():
             row[key]={"accuracy":float(accuracy_score(labels[te],pr)),"macro_f1":float(f1_score(labels[te],pr,average="macro"))}
         robustness.append(row)
     summary={key:{metric:{"mean":float(np.mean([r[key][metric] for r in robustness])),"sd":float(np.std([r[key][metric] for r in robustness],ddof=1))} for metric in ("accuracy","macro_f1")} for key in ("baseline","graph_features","selected_multihop")}
-    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":fit(x),"graph_features":fit(z),"selected_multihop":advanced,"robustness":{"design":"Fixed configuration selected on seed 42; overlapping splits are sensitivity checks, not independent external tests.","splits":robustness,"summary":summary},"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
+    baseline,base_pred=fit(x)
+    onehop,one_pred=fit(z)
+    paired={"versus_text_only":paired_outcomes(labels[test],base_pred,advanced_pred),"versus_one_hop":paired_outcomes(labels[test],one_pred,advanced_pred)}
+    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":baseline,"graph_features":onehop,"selected_multihop":advanced,"paired_comparisons":paired,"evaluation_version":2,"robustness":{"design":"Fixed configuration selected on seed 42; overlapping splits are sensitivity checks, not independent external tests.","splits":robustness,"summary":summary},"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2,allow_nan=False));print(json.dumps({k:report[k] for k in ("dataset","train_count","test_count","baseline","graph_features","selected_multihop","robustness")},indent=2))
 if __name__=="__main__":main()

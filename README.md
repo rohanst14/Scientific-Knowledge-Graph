@@ -44,7 +44,7 @@ The benchmark also evaluates normalized multi-hop graph features (depth 0–4) a
 
 The default benchmark uses the public LINQS Cora citation dataset (2,708 publications and 5,429 input citation rows). OpenAlex ingestion remains optional and requires an API key or local snapshot. Compare text-only logistic regression with graph-neighborhood features on a stratified held-out node split; this is transductive evaluation.
 
-Metrics: Held-out accuracy, macro-F1, citation-edge integrity, graph connectivity and PageRank.
+Evaluation: 12 scalar classification and probability metrics, seven-category precision/recall/F1 and support, confusion matrices, paired prediction outcomes, split sensitivity, citation-edge integrity, graph connectivity and PageRank. See the [metric definitions](docs/research-protocol.md#comprehensive-classification-evaluation).
 
 See [evaluation protocol](docs/research-protocol.md) for assumptions and limitations. The experiment writes `results/citations.json`. Successful benchmark jobs publish measured JSON reports to the repository; the dashboard loads the published report automatically when available. 
 
