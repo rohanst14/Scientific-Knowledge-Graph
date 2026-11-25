@@ -4,6 +4,6 @@ __pycache__/
 .env
 *.egg-info/
 node_modules/
-results/
-data/
+/results/
+/data/
 .pytest_cache/

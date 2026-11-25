@@ -13,6 +13,9 @@ jobs:
       - run: python -m compileall -q src experiments examples tests
       - run: node --check docs/dashboard.js
       - run: python tests/check_report.py docs/results/citations.json
+      - name: Verify publication path is not ignored
+        run: |
+          if git check-ignore --no-index docs/results/citations.json; then exit 1; fi
       - run: npm install --no-save --no-package-lock playwright
       - run: npx playwright install --with-deps chromium
       - run: node tests/dashboard_smoke.cjs
@@ -50,7 +53,7 @@ jobs:
           cp results/citations.json docs/results/citations.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/results/citations.json
+          git add -f -- docs/results/citations.json
           git diff --cached --quiet && exit 0
           git commit -m "Publish measured benchmark report"
           git push origin HEAD:main
