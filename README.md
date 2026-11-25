@@ -35,6 +35,10 @@ python experiments/cora_benchmark.py
 python -m unittest discover -s tests -v
 ```
 
+## Model selection
+
+The benchmark also evaluates normalized multi-hop graph features (depth 0–4) and four regularization settings. Selection uses macro-F1 on a development subset of training nodes; the selected model is refitted on training nodes before evaluation on the unchanged held-out split. The measured JSON report includes the chosen configuration.
+
 ## Dataset and methodology
 
 The default benchmark uses the public LINQS Cora citation dataset (2,708 publications and 5,429 input citation rows). OpenAlex ingestion remains optional and requires an API key or local snapshot. Compare text-only logistic regression with graph-neighborhood features on a stratified held-out node split; this is transductive evaluation.

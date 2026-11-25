@@ -33,10 +33,30 @@ def main():
     norm=diags(1/np.asarray(adj.sum(axis=1)).ravel())@adj
     z=np.concatenate([x,norm@x],axis=1)
     train,test=train_test_split(np.arange(len(ids)),test_size=.3,random_state=42,stratify=labels)
+    # Select graph depth and regularization exclusively on a development split.
+    dev,val=train_test_split(train,test_size=.2,random_state=42,stratify=labels[train])
+    from sklearn.preprocessing import normalize
+    xnorm=normalize(x,norm="l2")
+    representations={0:xnorm}
+    smooth=xnorm
+    for depth in range(1,5):
+        smooth=norm@smooth
+        representations[depth]=np.concatenate([representations[depth-1],normalize(smooth,norm="l2")],axis=1)
+    candidates=[]
+    for depth,features in representations.items():
+        for c in (.1,1.,10.,100.):
+            estimator=LogisticRegression(C=c,max_iter=1500,random_state=42).fit(features[dev],labels[dev])
+            prediction=estimator.predict(features[val])
+            candidates.append((float(f1_score(labels[val],prediction,average="macro")),depth,c))
+    best=max(candidates,key=lambda item:(item[0],-item[1],-item[2]))
+    _,depth,c=best
+    selected=LogisticRegression(C=c,max_iter=1500,random_state=42).fit(representations[depth][train],labels[train])
+    pred=selected.predict(representations[depth][test])
+    advanced={"accuracy":float(accuracy_score(labels[test],pred)),"macro_f1":float(f1_score(labels[test],pred,average="macro")),"depth":depth,"C":c,"validation_macro_f1":best[0],"validation_count":len(val),"candidate_count":len(candidates)}
     def fit(features):
         model=LogisticRegression(max_iter=1000,random_state=42).fit(features[train],labels[train])
         pred=model.predict(features[test])
         return {"accuracy":float(accuracy_score(labels[test],pred)),"macro_f1":float(f1_score(labels[test],pred,average="macro"))}
-    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":fit(x),"graph_features":fit(z),"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
+    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":fit(x),"graph_features":fit(z),"selected_multihop":advanced,"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2,allow_nan=False));print(json.dumps({k:report[k] for k in ("dataset","train_count","test_count","baseline","graph_features")},indent=2))
 if __name__=="__main__":main()
