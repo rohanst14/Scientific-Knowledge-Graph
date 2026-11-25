@@ -2,7 +2,7 @@
 
 **Citation intelligence & provenance**
 
-![Validation](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/workflows/research.yml/badge.svg)
+[![Validation](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/workflows/research.yml/badge.svg?branch=main&event=push)](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/workflows/research.yml)
 
 Scientific citation-network analysis and graph-enhanced publication classification using Cora, with optional OpenAlex ingestion.
 
@@ -10,7 +10,18 @@ Scientific citation-network analysis and graph-enhanced publication classificati
 
 [**Open interactive dashboard**](https://rohanst14.github.io/Scientific-Knowledge-Graph/) · [Evaluation protocol](docs/research-protocol.md)
 
-Explore published benchmark metrics and import additional experiment reports in JSON format.
+Explore directed citation neighborhoods, publication categories, PageRank rankings, citation provenance and held-out classification metrics. Search by publication ID or select a node to navigate its neighborhood.
+
+## Benchmark results
+
+Cora: 2,708 publications, 5,429 directed citation edges, 1,895 training nodes and 813 held-out nodes.
+
+| Method | Accuracy | Macro-F1 |
+|---|---:|---:|
+| Text-only logistic regression | 78.35% | 76.62% |
+| Graph-neighborhood features + logistic regression | 88.93% | 88.64% |
+
+[Measured report](docs/results/citations.json) · [Completed benchmark workflow](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45698062515). Results reflect a single stratified transductive split (seed 42), not an inductive or multi-seed benchmark.
 
 ## Installation and execution
 
