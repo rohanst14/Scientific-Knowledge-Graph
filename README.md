@@ -1,62 +1,95 @@
 # Scientific-Knowledge-Graph
 
-**Citation intelligence & provenance**
-
 [![Validation](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/workflows/research.yml/badge.svg?branch=main&event=push)](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/workflows/research.yml)
 
-Scientific citation-network analysis and graph-enhanced publication classification using Cora, with optional OpenAlex ingestion.
+Citation-network analysis and publication subject classification using multi-hop graph propagation and multinomial logistic regression. Directed citation relationships are preserved for network exploration; an undirected adjacency matrix is used for feature propagation.
 
-## Dashboard
+[**Interactive dashboard**](https://rohanst14.github.io/Scientific-Knowledge-Graph/) · [Experimental protocol](docs/research-protocol.md) · [Benchmark report](docs/results/citations.json)
 
-[**Open interactive dashboard**](https://rohanst14.github.io/Scientific-Knowledge-Graph/) · [Evaluation protocol](docs/research-protocol.md)
+## Dataset
 
-Explore directed citation neighborhoods, publication categories, PageRank rankings, citation provenance and held-out classification metrics. Search by publication ID or select a node to navigate its neighborhood.
+[Cora (LINQS)](https://linqs.org/datasets/) contains 2,708 publications, 5,429 directed citation edges, seven subject categories and 1,433 binary word-presence features per publication. The experiment uses the [PyGCN data mirror](https://github.com/tkipf/pygcn/tree/master/data/cora). Publication identifiers and citation directions are retained; original paper titles and abstracts are not supplied by these files.
 
-## Benchmark results
+## Method
 
-Cora: 2,708 publications, 5,429 directed citation edges, 1,895 training nodes and 813 held-out nodes.
+```mermaid
+flowchart LR
+    X[Binary word features] --> A[Text-only baseline]
+    X --> B[One-hop aggregation]
+    G[Citation graph] --> B
+    X --> C[Normalized multi-hop propagation]
+    G --> C
+    C --> D[Validation selection of depth and C]
+    A --> E[Common held-out test set]
+    B --> E
+    D --> E
+```
 
-| Method | Accuracy | Macro-F1 |
+Let X denote the binary feature matrix and P the row-normalized undirected adjacency matrix with self-loops. Three multinomial logistic regression classifiers are compared:
+
+- **Text only:** original word-presence features X.
+- **One-hop:** concatenate X and PX.
+- **Multi-hop:** L2-normalize each row of X, propagate with P up to depth k, L2-normalize each resulting feature block, and concatenate the blocks. Select k from 0–4 and regularization C from {0.1, 1, 10, 100} using validation macro-F1.
+
+The seed-42 stratified split assigns 1,895 nodes to training and 813 to testing. For multi-hop model selection, 379 training nodes serve as validation and 1,516 as development data. The selected model (k = 4, C = 1) is refitted on all 1,895 training nodes. The full graph and unlabeled features are available during training (transductive evaluation); test labels are excluded from fitting and model selection. This is fixed graph feature propagation, not a trained graph neural network.
+
+## Results
+
+All metrics below are calculated on the same 813 test nodes. Scores are reported on their native scales; bold indicates the best value among the three models.
+
+| Metric | Text only | One-hop | Multi-hop | Preferred |
+|---|---:|---:|---:|:---:|
+| Accuracy | 0.7835 | 0.8893 | **0.9077** | ↑ |
+| Macro precision | 0.7960 | 0.8952 | **0.9072** | ↑ |
+| Balanced accuracy (macro recall) | 0.7464 | 0.8809 | **0.8983** | ↑ |
+| Macro-F1 | 0.7662 | 0.8864 | **0.9016** | ↑ |
+| Weighted-F1 | 0.7818 | 0.8886 | **0.9079** | ↑ |
+| Matthews correlation coefficient | 0.7342 | 0.8649 | **0.8876** | ↑ |
+| Cohen's kappa | 0.7328 | 0.8645 | **0.8874** | ↑ |
+| Macro ROC-AUC (OvR) | 0.9479 | 0.9837 | **0.9890** | ↑ |
+| Macro average precision (OvR) | 0.8117 | 0.9383 | **0.9548** | ↑ |
+| Log loss | 0.7408 | 0.3843 | **0.3299** | ↓ |
+| Multiclass Brier score | 0.3341 | 0.1795 | **0.1516** | ↓ |
+| Expected calibration error (15 bins) | 0.0477 | **0.0375** | 0.0660 | ↓ |
+
+The multi-hop model correctly classifies 738 of 813 publications (90.77%), compared with 637 for text only (78.35%). It improves accuracy by 12.42 percentage points over text only and 1.85 over one-hop propagation. It has higher expected calibration error than both baselines despite lower log loss and Brier score.
+
+### Split sensitivity
+
+The fixed multi-hop configuration was also evaluated on stratified splits with seeds 17, 29 and 73. Values are mean ± sample standard deviation (percentage points for SD).
+
+| Model | Accuracy | Macro-F1 |
 |---|---:|---:|
-| Text-only logistic regression | 78.35% | 76.62% |
-| One-hop graph features + logistic regression | 88.93% | 88.64% |
-| Validation-selected multi-hop graph features | **90.77%** | **90.16%** |
+| Text only | 77.41% ± 0.58% | 74.77% ± 0.34% |
+| One-hop | 87.04% ± 1.12% | 85.33% ± 1.40% |
+| Multi-hop | 89.13% ± 0.19% | 87.88% ± 0.69% |
 
-[Measured report](docs/results/citations.json) · [Completed benchmark workflow](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45699272769). The table records the seed-42 transductive benchmark; graph-enhanced accuracy improved by 12.42 percentage points over text-only classification. The experiment additionally measures sensitivity across three overlapping stratified splits with the fixed selected configuration. These are not independent external test sets.
+These partitions overlap with each other and with the original development split; the sensitivity results are descriptive, not independent external validation. Comparisons establish improvement over the implemented baselines, not state-of-the-art performance.
 
-## Installation and execution
+The [benchmark report](docs/results/citations.json) contains class-level metrics, confusion matrices, reliability bins, paired prediction counts, split-level results and the dataset checksum. [Completed experiment](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45699997203).
+
+## Run locally
 
 ```bash
 git clone https://github.com/rohanst14/Scientific-Knowledge-Graph.git
 cd Scientific-Knowledge-Graph
 python -m venv .venv
-# Activate the environment for your operating system.
+# Activate the virtual environment for your OS.
 pip install -e . -r requirements-research.txt
 python experiments/cora_benchmark.py
 python -m unittest discover -s tests -v
+python tests/check_report.py results/citations.json
 ```
 
-## Model selection
+The experiment writes `results/citations.json`. Import this file in the browser dashboard to inspect a local run.
 
-The benchmark also evaluates normalized multi-hop graph features (depth 0–4) and four regularization settings. Selection uses macro-F1 on a development subset of training nodes; the selected model is refitted on training nodes before evaluation on the unchanged held-out split. The measured JSON report includes the chosen configuration. The additional sensitivity study uses seeds 17, 29 and 73 without retuning the fixed configuration, reporting mean and sample standard deviation.
+## Repository structure
 
-## Dataset and methodology
-
-The default benchmark uses the public LINQS Cora citation dataset (2,708 publications and 5,429 input citation rows). OpenAlex ingestion remains optional and requires an API key or local snapshot. Compare text-only logistic regression with graph-neighborhood features on a stratified held-out node split; this is transductive evaluation.
-
-Evaluation: 12 scalar classification and probability metrics, seven-category precision/recall/F1 and support, confusion matrices, paired prediction outcomes, split sensitivity, citation-edge integrity, graph connectivity and PageRank. See the [metric definitions](docs/research-protocol.md#comprehensive-classification-evaluation).
-
-See [evaluation protocol](docs/research-protocol.md) for assumptions and limitations. The experiment writes `results/citations.json`. Successful benchmark jobs publish measured JSON reports to the repository; the dashboard loads the published report automatically when available. 
-
-## Repository organization
-
-| Path | Purpose |
+| Path | Implementation |
 |---|---|
-| src/ | Core algorithms and model interfaces |
-| experiments/ | Reproducible experiment entry points |
-| tests/ | Automated regression tests |
-| docs/ | Dashboard and methodology |
-| requirements-research.txt | Experiment dependencies |
-| .github/workflows/ | Continuous validation |
+| [src/scientific_knowledge_graph/](src/scientific_knowledge_graph/) | Citation ingestion, graph queries and evaluation metrics |
+| [experiments/cora_benchmark.py](experiments/cora_benchmark.py) | Feature propagation, model selection and benchmark execution |
+| [tests/](tests/) | Unit tests, report integrity and browser interaction tests |
+| [docs/](docs/) | Citation explorer, performance diagnostics and published report |
 
-Use [GitHub Actions](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions) to inspect actual test outcomes.
+OpenAlex ingestion is a separate optional capability requiring an API key or a local snapshot; it is not used in the Cora benchmark.
