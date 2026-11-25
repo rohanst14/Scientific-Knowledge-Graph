@@ -12,19 +12,6 @@ Citation-network analysis and publication subject classification using multi-hop
 
 ## Method
 
-```mermaid
-flowchart LR
-    X[Binary word features] --> A[Text-only baseline]
-    X --> B[One-hop aggregation]
-    G[Citation graph] --> B
-    X --> C[Normalized multi-hop propagation]
-    G --> C
-    C --> D[Validation selection of depth and C]
-    A --> E[Common held-out test set]
-    B --> E
-    D --> E
-```
-
 Let X denote the binary feature matrix and P the row-normalized undirected adjacency matrix with self-loops. Three multinomial logistic regression classifiers are compared:
 
 - **Text only:** original word-presence features X.
