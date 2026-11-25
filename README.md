@@ -4,7 +4,7 @@
 
 Citation-network analysis and publication subject classification using multi-hop graph propagation and multinomial logistic regression. Directed citation relationships are preserved for network exploration; an undirected adjacency matrix is used for feature propagation.
 
-[**Interactive dashboard**](https://rohanst14.github.io/Scientific-Knowledge-Graph/) · [Experimental protocol](docs/research-protocol.md) · [Benchmark report](docs/results/citations.json)
+[**Interactive dashboard**](https://rohanst14.github.io/Scientific-Knowledge-Graph/) · [Experimental protocol](docs/research-protocol.md) · [Experimental report](docs/experimental-report.md) · [Results JSON](docs/results/citations.json)
 
 ## Dataset
 
@@ -22,32 +22,32 @@ The seed-42 stratified split assigns 1,895 nodes to training and 813 to testing.
 
 ## Kernel and label-diffusion comparison
 
-The additional classifier compares regularized logistic regression with nonlinear precomputed-kernel SVMs using normalized multi-hop text similarity and four-step graph-diffusion coordinates. Training-label residual correction and clamped probability smoothing are selected together with the classifier from 63 configurations on the development validation partition, by accuracy with macro-F1 as tie-breaker. Only training labels are supplied to the diffusion algorithm. The selected configuration is refitted on all training nodes. The new comparison is recorded in the benchmark JSON and dashboard after execution; the table below preserves the previously verified three-model reference results. Because the seed-42 test scores have already been inspected in earlier development, the comparison is exploratory on a reused benchmark rather than fresh independent confirmation.
+The additional classifier compares regularized logistic regression with nonlinear precomputed-kernel SVMs using normalized multi-hop text similarity and four-step graph-diffusion coordinates. Training-label residual correction and clamped probability smoothing are selected together with the classifier from 63 configurations on the development validation partition, by accuracy with macro-F1 as tie-breaker. Only training labels are supplied to the diffusion algorithm. The selected configuration is refitted on all training nodes. The completed comparison is included below. Because the seed-42 test scores have already been inspected in earlier development, the comparison is exploratory on a reused benchmark rather than fresh independent confirmation.
 
 ## Results
 
-All metrics below are calculated on the same 813 test nodes. Scores are reported on their native scales; bold indicates the best value among the three models.
+All metrics below are calculated on the same 813 test nodes. Scores are reported on their native scales; bold indicates the best value among the four models.
 
-| Metric | Text only | One-hop | Multi-hop | Preferred |
-|---|---:|---:|---:|:---:|
-| Accuracy | 0.7835 | 0.8893 | **0.9077** | ↑ |
-| Macro precision | 0.7960 | 0.8952 | **0.9072** | ↑ |
-| Balanced accuracy (macro recall) | 0.7464 | 0.8809 | **0.8983** | ↑ |
-| Macro-F1 | 0.7662 | 0.8864 | **0.9016** | ↑ |
-| Weighted-F1 | 0.7818 | 0.8886 | **0.9079** | ↑ |
-| Matthews correlation coefficient | 0.7342 | 0.8649 | **0.8876** | ↑ |
-| Cohen's kappa | 0.7328 | 0.8645 | **0.8874** | ↑ |
-| Macro ROC-AUC (OvR) | 0.9479 | 0.9837 | **0.9890** | ↑ |
-| Macro average precision (OvR) | 0.8117 | 0.9383 | **0.9548** | ↑ |
-| Log loss | 0.7408 | 0.3843 | **0.3299** | ↓ |
-| Multiclass Brier score | 0.3341 | 0.1795 | **0.1516** | ↓ |
-| Expected calibration error (15 bins) | 0.0477 | **0.0375** | 0.0660 | ↓ |
+| Metric | Text only | One-hop | Multi-hop | Kernel/diffusion | Preferred |
+|---|---:|---:|---:|---:|:---:|
+| Accuracy | 0.7835 | 0.8893 | **0.9077** | 0.8991 | ↑ |
+| Macro precision | 0.7960 | 0.8952 | **0.9072** | 0.8981 | ↑ |
+| Balanced accuracy | 0.7464 | 0.8809 | **0.8983** | 0.8938 | ↑ |
+| Macro-F1 | 0.7662 | 0.8864 | **0.9016** | 0.8940 | ↑ |
+| Weighted-F1 | 0.7818 | 0.8886 | **0.9079** | 0.8994 | ↑ |
+| MCC | 0.7342 | 0.8649 | **0.8876** | 0.8774 | ↑ |
+| Cohen's kappa | 0.7328 | 0.8645 | **0.8874** | 0.8771 | ↑ |
+| Macro ROC-AUC (OvR) | 0.9479 | 0.9837 | **0.9890** | 0.9871 | ↑ |
+| Macro average precision (OvR) | 0.8117 | 0.9383 | **0.9548** | 0.9460 | ↑ |
+| Log loss | 0.7408 | 0.3843 | **0.3299** | 0.3321 | ↓ |
+| Multiclass Brier score | 0.3341 | 0.1795 | **0.1516** | 0.1555 | ↓ |
+| Expected calibration error | 0.0477 | 0.0375 | 0.0660 | **0.0300** | ↓ |
 
-The multi-hop model correctly classifies 738 of 813 publications (90.77%), compared with 637 for text only (78.35%). It improves accuracy by 12.42 percentage points over text only and 1.85 over one-hop propagation. It has higher expected calibration error than both baselines despite lower log loss and Brier score.
+Multi-hop logistic regression has the highest measured accuracy (90.77%) and macro-F1 (90.16%). Kernel/diffusion achieves 89.91% accuracy (-0.86 percentage points relative to multi-hop) but lower top-label calibration error (0.0300 versus 0.0660). The 95% accuracy target was not reached. ROC-AUC measures ranking, not classification accuracy.
 
 ### Split sensitivity
 
-The fixed multi-hop configuration was also evaluated on stratified splits with seeds 17, 29 and 73. Values are mean ± sample standard deviation (percentage points for SD).
+The fixed multi-hop configuration was also evaluated on stratified splits with seeds 17, 29 and 73; kernel/diffusion was evaluated only on seed 42. Values are mean ± sample standard deviation (percentage points for SD).
 
 | Model | Accuracy | Macro-F1 |
 |---|---:|---:|
@@ -57,7 +57,7 @@ The fixed multi-hop configuration was also evaluated on stratified splits with s
 
 These partitions overlap with each other and with the original development split; the sensitivity results are descriptive, not independent external validation. Comparisons establish improvement over the implemented baselines, not state-of-the-art performance.
 
-The [benchmark report](docs/results/citations.json) contains class-level metrics, confusion matrices, reliability bins, paired prediction counts, split-level results and the dataset checksum. [Completed experiment](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45699997203).
+The [benchmark report](docs/results/citations.json) contains class-level metrics, confusion matrices, reliability bins, paired prediction counts, split-level results and the dataset checksum. [Completed experiment](https://github.com/rohanst14/Scientific-Knowledge-Graph/actions/runs/45700542187).
 
 ## Run locally
 

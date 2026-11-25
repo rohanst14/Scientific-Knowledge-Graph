@@ -1,15 +1,53 @@
-# Citation network evaluation
+# Experimental protocol
 
-The default credential-free benchmark uses the public LINQS Cora dataset (https://linqs.org/datasets/). Download the original Cora content and citation files from the PyGCN mirror (https://github.com/tkipf/pygcn/tree/master/data/cora); record SHA-256 of the content bytes, a newline separator and citation bytes. Preserve original paper identifiers and citation provenance. Validate node and input edge counts and compare the constructed directed graph to the input edge set. Compare multinomial logistic regression on binary word-presence features against logistic regression on original plus row-normalized one-hop neighborhood features. Citation rows are ordered cited ID, citing ID; edges are stored citing → cited. For prediction only, symmetrize the adjacency and add self-loops. The Cora files contain identifiers, word-presence features and labels, not article titles or abstracts. Stratified 70/30 node split, seed 42; both models use the same labels and split. Full graph topology and unlabeled features are available (transductive setting), but test labels are not used for fitting. Report accuracy and macro-F1 without asserting superiority in advance. Cora is historical and not representative of all scientific fields. OpenAlex remains an optional ingestion path; current API access requires credentials, or use a local JSONL snapshot. Citation does not imply causality or endorsement.
+## 1. Objective and data
 
-## Multi-hop representation and sensitivity analysis
+- Task: seven-class publication subject classification on the LINQS Cora citation network.
+- Data: 2,708 nodes, 5,429 directed citation edges and 1,433 binary word-presence features per node.
+- Source: [LINQS Cora](https://linqs.org/datasets/) via the [PyGCN mirror](https://github.com/tkipf/pygcn/tree/master/data/cora).
+- Integrity: record SHA-256 of the content bytes, a newline separator and citation bytes; validate node identifiers, edge endpoints and counts.
+- Citation rows are ordered cited ID, citing ID; retain citing-to-cited directed edges for exploration. For classification, symmetrize adjacency, add self-loops and row-normalize to obtain P.
+- Original article titles and abstracts are not present in these data. OpenAlex is a separate optional ingestion path and is not used in the benchmark.
 
-Row-normalized adjacency includes self-loops; concatenate L2-normalized text and propagated representations at depths 0–4. Select depth and logistic regularization from 20 configurations using macro-F1 on a 20% development subset of the training nodes. Refit the chosen model on the full training partition. Retain the seed-42 test split for comparison with text-only and one-hop baselines. Three additional stratified seeds (17, 29, 73) assess sensitivity with the fixed configuration selected on seed 42. Their test sets can overlap with the seed-42 development data used to choose hyperparameters, so this is descriptive sensitivity analysis, not independent out-of-sample model-selection validation; standard deviations are not confidence intervals. All topology and unlabeled node features are available in this transductive setting.
+## 2. Partitioning and leakage control
 
-## Comprehensive classification evaluation
+- Primary partition: stratified 70/30 split with seed 42; 1,895 training nodes and 813 test nodes.
+- Model selection: split training into 1,516 development and 379 validation nodes, using seed 42 and stratification.
+- Use the same primary partitions for all four classifiers. Fit candidate models on development labels; choose configurations using validation scores only, then refit on the full training set.
+- Transductive setting: the full graph topology and unlabeled feature matrix are available to every model; test labels are excluded from model fitting, configuration selection and label propagation.
+- The primary benchmark was inspected in earlier development. Later comparisons are exploratory, not fresh independent confirmation.
 
-Evaluate all three models on identical held-out nodes. Probability columns follow the sorted estimator classes. Accuracy, macro precision, balanced accuracy (macro recall), macro-F1 and support-weighted F1 summarize hard predictions; undefined class precision is set to zero. MCC and Cohen's kappa range from -1 to 1, with larger values preferred. Macro ROC-AUC and macro average precision use one-vs-rest binary indicators with equal class weights. Log loss uses natural logarithms; multiclass Brier is mean summed squared error over all class probabilities (range 0–2). Top-label ECE uses 15 equally spaced confidence bins, weighted by bin population. These three probability-quality measures are lower-is-better. Report class support, confusion matrices (true rows, predicted columns), reliability bins and paired correctness counts for the multi-hop model against both baselines. Paired differences are descriptive: connected graph nodes are dependent, so an independent-sample significance claim is not justified. Do not select models using these test metrics. The seed-42 results are comparisons against the implemented baselines, not a claim of state of the art.
+## 3. Classifiers and selection
 
-## Kernel and training-label diffusion
+- Text-only baseline: multinomial logistic regression on original binary feature matrix X.
+- One-hop baseline: logistic regression on concatenated X and PX.
+- Multi-hop: L2-normalize X by row, propagate through P up to depth k, normalize each propagated block, concatenate the blocks.
+- Multi-hop search: k = 0–4 and C ∈ {0.1, 1, 10, 100}; 20 configurations selected by validation macro-F1.
+- Kernel/diffusion: combine 85% cosine similarity of normalized multi-hop feature vectors with 15% cosine similarity of normalized four-step transition-matrix rows.
+- Kernel search: RBF exp(-gamma × squared distance), gamma ∈ {0.5, 2}, SVM C ∈ {1, 10, 100}, plus the selected logistic model. Estimate SVM probabilities internally on training examples.
+- Residual correction strengths {0, 1, 3}; clamped probability smoothing weights {0, 0.5, 0.9}; 30 propagation steps. Construct residuals and clamped labels exclusively from the supplied training subset.
+- Kernel/diffusion search: 63 configurations; select by validation accuracy with macro-F1 as tie-breaker. Refit on full training partition.
 
-The nonlinear alternative combines 85% cosine similarity of the normalized concatenated feature blocks with 15% cosine similarity of normalized four-step transition-matrix rows. Use RBF kernels exp(-gamma * squared distance), gamma in {0.5, 2}, and SVM C in {1, 10, 100}, plus the previously selected logistic model. Probability estimates for SVMs are fitted internally on training examples. For each base classifier, evaluate residual correction strengths {0, 1, 3} and clamped smoothing weights {0, 0.5, 0.9}; 30 propagation steps are used. Residuals and clamped labels are constructed only from the supplied training subset. Choose among 63 configurations by validation accuracy, then macro-F1, refit on all training labels and evaluate once per run on the unchanged benchmark test nodes. This is exploratory comparison on an already inspected benchmark; it is not independent confirmation on a new dataset. Report every candidate's validation scores, all 12 held-out metrics and paired outcomes against the prior multi-hop classifier.
+## 4. Evaluation
+
+- Hard predictions: accuracy, macro precision, balanced accuracy (macro recall), macro-F1, support-weighted F1, Matthews correlation coefficient and Cohen's kappa.
+- Ranking: macro one-vs-rest ROC-AUC and average precision, with equal class weights and probability columns ordered by sorted class labels.
+- Probability quality: natural-log loss; multiclass Brier score (mean sum of squared probability errors, range 0–2); top-label expected calibration error (15 equal-width confidence bins, weighted by bin population).
+- Prefer higher classification and ranking metrics, lower probability errors. Undefined class precision is zero.
+- Record per-class precision, recall, F1 and support; confusion matrices (true rows, predicted columns), reliability bins and paired correctness counts. Report paired changes descriptively; connected nodes are dependent.
+- Keep the 95% accuracy goal separate from measured performance; it is not a CI pass criterion.
+
+## 5. Sensitivity and limitations
+
+- Repeat stratified splits with seeds 17, 29 and 73 for text-only, one-hop and fixed multi-hop configurations.
+- Report mean and sample standard deviation of accuracy and macro-F1; kernel/diffusion is evaluated only on the primary split.
+- These partitions overlap with each other and with earlier development data. Their variability is descriptive, not an independent confidence interval or external validation.
+- Cora is a historical dataset; results do not establish generalization to other scientific fields, inductive graphs or state-of-the-art superiority.
+
+## 6. Reproducibility
+
+- Install the dependencies in `requirements-research.txt`.
+- Execute `python experiments/cora_benchmark.py`.
+- Validate output with `python tests/check_report.py results/citations.json` and run the repository unit tests.
+- The browser dashboard reads the published JSON; it does not train classifiers. Node colors represent dataset annotations, not predictions.
+- [Experimental report](experimental-report.md) · [Measured JSON](results/citations.json) · [Dashboard](https://rohanst14.github.io/Scientific-Knowledge-Graph/).
