@@ -35,6 +35,10 @@ jobs:
       - run: pip install -e . -r requirements-research.txt
       - run: python experiments/cora_benchmark.py
       - run: python tests/check_report.py results/citations.json
+      - run: cp results/citations.json docs/results/citations.json
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/dashboard_smoke.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: citation-report

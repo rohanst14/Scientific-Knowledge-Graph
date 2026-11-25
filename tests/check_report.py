@@ -25,9 +25,18 @@ def check(path):
             assert row["train_count"]+row["test_count"]==len(ids)
             for key in ("baseline","graph_features","selected_multihop"):
                 assert all(math.isfinite(row[key][m]) and 0<=row[key][m]<=1 for m in ("accuracy","macro_f1"))
-    if r.get("evaluation_version")==2:
+    if r.get("evaluation_version",1)>=2:
         from scientific_knowledge_graph.evaluation import METRIC_KEYS
-        for key in ("baseline","graph_features","selected_multihop"):
+        keys=["baseline","graph_features","selected_multihop"]
+        if r.get("evaluation_version")==3:
+            keys.append("graph_kernel_diffusion")
+            a=r["graph_kernel_diffusion"]
+            assert a["candidate_count"]==len(a["validation_candidates"])==63
+            assert a["configuration"]==max(a["validation_candidates"],key=lambda c:(c["validation_accuracy"],c["validation_macro_f1"]))
+            v=r["refined_paired_comparison"]
+            assert sum(v[z] for z in ("both_correct","both_wrong","reference_only_correct","candidate_only_correct"))==r["test_count"]
+            assert abs(v["accuracy_delta"]-(a["accuracy"]-r["selected_multihop"]["accuracy"]))<1e-9
+        for key in keys:
             m=r[key]
             assert all(math.isfinite(m[k]) for k in METRIC_KEYS)
             assert all(0<=m[k]<=1 for k in ("accuracy","macro_precision","balanced_accuracy","macro_f1","weighted_f1","macro_roc_auc","macro_average_precision","ece"))

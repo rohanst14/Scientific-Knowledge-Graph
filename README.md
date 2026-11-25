@@ -33,6 +33,10 @@ Let X denote the binary feature matrix and P the row-normalized undirected adjac
 
 The seed-42 stratified split assigns 1,895 nodes to training and 813 to testing. For multi-hop model selection, 379 training nodes serve as validation and 1,516 as development data. The selected model (k = 4, C = 1) is refitted on all 1,895 training nodes. The full graph and unlabeled features are available during training (transductive evaluation); test labels are excluded from fitting and model selection. This is fixed graph feature propagation, not a trained graph neural network.
 
+## Kernel and label-diffusion comparison
+
+The additional classifier compares regularized logistic regression with nonlinear precomputed-kernel SVMs using normalized multi-hop text similarity and four-step graph-diffusion coordinates. Training-label residual correction and clamped probability smoothing are selected together with the classifier from 63 configurations on the development validation partition, by accuracy with macro-F1 as tie-breaker. Only training labels are supplied to the diffusion algorithm. The selected configuration is refitted on all training nodes. The new comparison is recorded in the benchmark JSON and dashboard after execution; the table below preserves the previously verified three-model reference results. Because the seed-42 test scores have already been inspected in earlier development, the comparison is exploratory on a reused benchmark rather than fresh independent confirmation.
+
 ## Results
 
 All metrics below are calculated on the same 813 test nodes. Scores are reported on their native scales; bold indicates the best value among the three models.
