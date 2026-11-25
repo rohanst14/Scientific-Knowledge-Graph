@@ -1,9 +1,14 @@
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
+
 [project]
 name = "scientific-knowledge-graph"
 version = "0.1.0"
-requires-python = ">=3.10"
+description = "Citation-network analysis and graph-enhanced publication classification"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["networkx>=3.3,<4", "numpy>=1.26,<3", "scipy>=1.11,<2", "scikit-learn>=1.5,<2"]
+
 [tool.setuptools.packages.find]
 where = ["src"]

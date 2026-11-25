@@ -12,13 +12,18 @@ def check(path):
     assert all(a in valid and b in valid for a,b in edges)
     assert Counter(n["category"] for n in r["nodes"])==r["class_counts"]
     assert r["train_count"]+r["test_count"]==len(ids)
-    assert len(r["dataset_sha256"])==64
+    assert r["dataset_sha256"]=="9bd61b0211155dfda9e1280e00fef9fbcaedb5befee6042e121d6473fa2af80f"
     for key in ("baseline","graph_features","selected_multihop"):
         m=r[key]
         for metric in ("accuracy","macro_f1"):
             assert math.isfinite(m[metric]) and 0<=m[metric]<=1
         assert abs(m["accuracy"]*r["test_count"]-round(m["accuracy"]*r["test_count"]))<1e-7
     assert r["selected_multihop"]["candidate_count"]==20
+    if "validation_candidates" in r["selected_multihop"]:
+        a=r["selected_multihop"]; candidates=a["validation_candidates"]
+        assert len(candidates)==20
+        best=max(candidates,key=lambda c:(c["macro_f1"],-c["depth"],-c["C"]))
+        assert (best["depth"],best["C"],best["macro_f1"])==(a["depth"],a["C"],a["validation_macro_f1"])
     if "robustness" in r:
         assert [s["seed"] for s in r["robustness"]["splits"]]==[17,29,73]
         for row in r["robustness"]["splits"]:
@@ -47,8 +52,30 @@ def check(path):
             assert abs(sum(matrix[i][i] for i in range(7))/r["test_count"]-m["accuracy"])<1e-9
             assert all(sum(row)==c["support"] for row,c in zip(matrix,m["per_class"]))
             assert sum(b["count"] for b in m["reliability_bins"])==r["test_count"]
+            assert abs(sum(b["count"]*abs(b["accuracy"]-b["confidence"]) for b in m["reliability_bins"])/r["test_count"]-m["ece"])<1e-9
+            for i,c in enumerate(m["per_class"]):
+                tp=matrix[i][i]; predicted=sum(row[i] for row in matrix); actual=sum(matrix[i])
+                precision=tp/predicted if predicted else 0
+                recall=tp/actual if actual else 0
+                f1=2*precision*recall/(precision+recall) if precision+recall else 0
+                assert c["class"]==m["classes"][i]
+                assert all(abs(c[k]-v)<1e-9 for k,v in (("precision",precision),("recall",recall),("f1",f1)))
+            assert abs(sum(c["f1"] for c in m["per_class"])/7-m["macro_f1"])<1e-9
+            assert abs(sum(c["recall"] for c in m["per_class"])/7-m["balanced_accuracy"])<1e-9
+            assert abs(sum(c["precision"] for c in m["per_class"])/7-m["macro_precision"])<1e-9
+            assert abs(sum(c["f1"]*c["support"] for c in m["per_class"])/r["test_count"]-m["weighted_f1"])<1e-9
         for k,v in r["paired_comparisons"].items():
             assert sum(v[z] for z in ("both_correct","both_wrong","reference_only_correct","candidate_only_correct"))==r["test_count"]
             assert abs((v["candidate_only_correct"]-v["reference_only_correct"])/r["test_count"]-v["accuracy_delta"])<1e-9
+    if r.get("evaluation_version")==3:
+        models=("baseline","graph_features","selected_multihop","graph_kernel_diffusion")
+        labels=("Accuracy","Macro precision","Balanced accuracy","Macro-F1","Weighted-F1","MCC","Cohen's kappa","Macro ROC-AUC (OvR)","Macro average precision (OvR)","Log loss","Multiclass Brier score","Expected calibration error")
+        for doc in ("README.md","docs/experimental-report.md"):
+            lines=Path(doc).read_text().splitlines()
+            for label,key in zip(labels,METRIC_KEYS):
+                matches=[line for line in lines if line.startswith("| "+label+" |")]
+                assert len(matches)==1, (doc,label)
+                values=[v.strip().strip("*") for v in matches[0].split("|")[2:6]]
+                assert values==[f"{r[m][key]:.4f}" for m in models], (doc,label,values)
     print("Cora report integrity checks passed")
 if __name__=="__main__":check(sys.argv[1])

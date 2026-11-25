@@ -5,7 +5,7 @@
 - Task: seven-class publication subject classification on the LINQS Cora citation network.
 - Data: 2,708 nodes, 5,429 directed citation edges and 1,433 binary word-presence features per node.
 - Source: [LINQS Cora](https://linqs.org/datasets/) via the [PyGCN mirror](https://github.com/tkipf/pygcn/tree/master/data/cora).
-- Integrity: record SHA-256 of the content bytes, a newline separator and citation bytes; validate node identifiers, edge endpoints and counts.
+- Integrity: verify the expected SHA-256 of the content bytes, a newline separator and citation bytes; validate node identifiers, edge endpoints, counts and binary feature dimensions.
 - Citation rows are ordered cited ID, citing ID; retain citing-to-cited directed edges for exploration. For classification, symmetrize adjacency, add self-loops and row-normalize to obtain P.
 - Original article titles and abstracts are not present in these data. OpenAlex is a separate optional ingestion path and is not used in the benchmark.
 
@@ -35,7 +35,6 @@
 - Probability quality: natural-log loss; multiclass Brier score (mean sum of squared probability errors, range 0–2); top-label expected calibration error (15 equal-width confidence bins, weighted by bin population).
 - Prefer higher classification and ranking metrics, lower probability errors. Undefined class precision is zero.
 - Record per-class precision, recall, F1 and support; confusion matrices (true rows, predicted columns), reliability bins and paired correctness counts. Report paired changes descriptively; connected nodes are dependent.
-- Keep the 95% accuracy goal separate from measured performance; it is not a CI pass criterion.
 
 ## 5. Sensitivity and limitations
 
@@ -46,7 +45,7 @@
 
 ## 6. Reproducibility
 
-- Install the dependencies in `requirements-research.txt`.
+- Use Python 3.11 and the exact benchmark dependency versions in `requirements-research.txt`. The benchmark records the runtime package versions in new reports.
 - Execute `python experiments/cora_benchmark.py`.
 - Validate output with `python tests/check_report.py results/citations.json` and run the repository unit tests.
 - The browser dashboard reads the published JSON; it does not train classifiers. Node colors represent dataset annotations, not predictions.

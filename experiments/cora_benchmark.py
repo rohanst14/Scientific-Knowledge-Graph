@@ -1,5 +1,6 @@
 """Credential-free Cora citation benchmark; original IDs and edge provenance."""
-import argparse,hashlib,json
+import argparse,hashlib,json,platform
+from importlib.metadata import version
 from pathlib import Path
 from urllib.request import urlopen
 from collections import Counter
@@ -11,16 +12,21 @@ from sklearn.metrics import accuracy_score,f1_score
 from scientific_knowledge_graph.evaluation import evaluate_probabilities,paired_outcomes
 from scientific_knowledge_graph.graph_classifier import select_graph_classifier
 URL="https://raw.githubusercontent.com/tkipf/pygcn/master/data/cora/"
+EXPECTED_SHA256="9bd61b0211155dfda9e1280e00fef9fbcaedb5befee6042e121d6473fa2af80f"
 
 def main():
     p=argparse.ArgumentParser();p.add_argument("--output",type=Path,default=Path("results/citations.json"));a=p.parse_args()
     with urlopen(URL+"cora.content",timeout=90) as response: content=response.read(20_000_000)
     with urlopen(URL+"cora.cites",timeout=90) as response: cites=response.read(20_000_000)
     raw=content+b"\n"+cites
+    if hashlib.sha256(raw).hexdigest()!=EXPECTED_SHA256:
+        raise ValueError("Cora dataset checksum mismatch")
     records=[line.split() for line in content.decode().splitlines() if line.strip()]
     refs=[line.split() for line in cites.decode().splitlines() if line.strip()]
     ids=[r[0] for r in records];labels=np.array([r[-1] for r in records]);x=np.array([r[1:-1] for r in records],dtype=np.float32)
     if len(ids)!=2708 or len(set(ids))!=2708 or len(refs)!=5429: raise ValueError("Unexpected Cora corpus dimensions")
+    if x.shape!=(2708,1433) or not np.isin(x,[0,1]).all() or len(set(labels))!=7:
+        raise ValueError("Unexpected Cora feature matrix or categories")
     g=nx.DiGraph()
     g.add_nodes_from(ids)
     for cited,citing in refs:
@@ -54,7 +60,7 @@ def main():
     _,depth,c=best
     selected=LogisticRegression(C=c,max_iter=1500,random_state=42).fit(representations[depth][train],labels[train])
     advanced,advanced_pred=evaluate_probabilities(labels[test],selected.predict_proba(representations[depth][test]),selected.classes_)
-    advanced.update({"depth":depth,"C":c,"validation_macro_f1":best[0],"validation_count":len(val),"candidate_count":len(candidates)})
+    advanced.update({"depth":depth,"C":c,"validation_macro_f1":best[0],"validation_count":len(val),"candidate_count":len(candidates),"validation_candidates":[{"macro_f1":score,"depth":d,"C":penalty} for score,d,penalty in candidates]})
     def fit(features):
         model=LogisticRegression(max_iter=1000,random_state=42).fit(features[train],labels[train])
         return evaluate_probabilities(labels[test],model.predict_proba(features[test]),model.classes_)
@@ -77,6 +83,6 @@ def main():
     refined,refined_pred=evaluate_probabilities(labels[test],refined_p[test],refined_classes)
     refined.update({"configuration":refined_config,"candidate_count":len(refined_candidates),"validation_candidates":refined_candidates})
     refined_paired=paired_outcomes(labels[test],advanced_pred,refined_pred)
-    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":baseline,"graph_features":onehop,"selected_multihop":advanced,"paired_comparisons":paired,"evaluation_version":3,"graph_kernel_diffusion":refined,"refined_paired_comparison":refined_paired,"robustness":{"design":"Fixed configuration selected on seed 42; overlapping splits are sensitivity checks, not independent external tests.","splits":robustness,"summary":summary},"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
+    report={"dataset":"Cora (LINQS)","dataset_sha256":hashlib.sha256(raw).hexdigest(),"source_url":URL,"seed":42,"train_count":len(train),"test_count":len(test),"baseline":baseline,"graph_features":onehop,"selected_multihop":advanced,"paired_comparisons":paired,"evaluation_version":3,"environment":{"python":platform.python_version(),**{name:version(name) for name in ("numpy","scipy","scikit-learn","networkx")}},"graph_kernel_diffusion":refined,"refined_paired_comparison":refined_paired,"robustness":{"design":"Fixed configuration selected on seed 42; overlapping splits are sensitivity checks, not independent external tests.","splits":robustness,"summary":summary},"metrics":{"observed_works":len(ids),"external_reference_nodes":0,"citation_edges":g.number_of_edges(),"internal_edges":g.number_of_edges(),"weak_components":nx.number_weakly_connected_components(g),"top_pagerank":[{"id":k,"title":"Cora paper "+k,"score":v} for k,v in sorted(rank.items(),key=lambda t:(-t[1],t[0]))[:20]]},"nodes":[{"id":k,"title":"Cora paper "+k,"category":str(y),"observed":True} for k,y in zip(ids,labels)],"edges":[{"from":u,"to":v,"source":"cora.cites","relation":"cites"} for u,v in g.edges],"class_counts":dict(Counter(labels.tolist()))}
     a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(report,indent=2,allow_nan=False));print(json.dumps({k:report[k] for k in ("dataset","train_count","test_count","baseline","graph_features","selected_multihop","graph_kernel_diffusion","robustness")},indent=2))
 if __name__=="__main__":main()

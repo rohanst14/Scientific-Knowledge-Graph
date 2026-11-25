@@ -1,3 +1,7 @@
-from scientific_knowledge_graph import *
+"""Controlled-text example, independent of the Cora benchmark."""
 import json
-print(json.dumps(extract({'paper-1':'Heat increases pressure. Pressure causes alarm.'}),indent=2))
+from scientific_knowledge_graph import extract
+
+if __name__ == "__main__":
+    documents = {"paper-1": "Heat increases pressure. Pressure causes alarm."}
+    print(json.dumps(extract(documents), indent=2))

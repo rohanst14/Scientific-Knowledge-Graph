@@ -43,7 +43,7 @@ All metrics below are calculated on the same 813 test nodes. Scores are reported
 | Multiclass Brier score | 0.3341 | 0.1795 | **0.1516** | 0.1555 | ↓ |
 | Expected calibration error | 0.0477 | 0.0375 | 0.0660 | **0.0300** | ↓ |
 
-Multi-hop logistic regression has the highest measured accuracy (90.77%) and macro-F1 (90.16%). Kernel/diffusion achieves 89.91% accuracy (-0.86 percentage points relative to multi-hop) but lower top-label calibration error (0.0300 versus 0.0660). The 95% accuracy target was not reached. ROC-AUC measures ranking, not classification accuracy.
+Multi-hop logistic regression has the highest measured accuracy (90.77%) and macro-F1 (90.16%). Kernel/diffusion achieves 89.91% accuracy (-0.86 percentage points relative to multi-hop) but lower top-label calibration error (0.0300 versus 0.0660). ROC-AUC measures ranking, not classification accuracy.
 
 ### Split sensitivity
 
@@ -64,7 +64,7 @@ The [benchmark report](docs/results/citations.json) contains class-level metrics
 ```bash
 git clone https://github.com/rohanst14/Scientific-Knowledge-Graph.git
 cd Scientific-Knowledge-Graph
-python -m venv .venv
+python3.11 -m venv .venv
 # Activate the virtual environment for your OS.
 pip install -e . -r requirements-research.txt
 python experiments/cora_benchmark.py
@@ -83,4 +83,8 @@ The experiment writes `results/citations.json`. Import this file in the browser 
 | [tests/](tests/) | Unit tests, report integrity and browser interaction tests |
 | [docs/](docs/) | Citation explorer, performance diagnostics and published report |
 
-OpenAlex ingestion is a separate optional capability requiring an API key or a local snapshot; it is not used in the Cora benchmark.
+### Optional citation ingestion
+
+Analyze a local OpenAlex JSONL snapshot with `python experiments/citation_study.py --input data/openalex.jsonl`. For network retrieval, set `OPENALEX_API_KEY` and add `--download --query "process safety" --limit 300`. The resulting `results/openalex-citations.json` is a separate network-analysis report, not a Cora classification benchmark. The public dashboard imports Cora reports only.
+
+The [controlled-text extraction example](examples/demo.py) is a separate rule-based demonstration, documented in [methodology.md](docs/methodology.md); it is not part of the measured Cora experiment.

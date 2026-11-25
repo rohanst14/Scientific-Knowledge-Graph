@@ -22,7 +22,7 @@
 | Multiclass Brier score | 0.3341 | 0.1795 | **0.1516** | 0.1555 | ↓ |
 | Expected calibration error | 0.0477 | 0.0375 | 0.0660 | **0.0300** | ↓ |
 
-Multi-hop logistic regression has the highest measured accuracy (90.77%) and macro-F1 (90.16%). Kernel/diffusion achieves 89.91% accuracy (-0.86 percentage points relative to multi-hop) but lower top-label calibration error (0.0300 versus 0.0660). The 95% accuracy target was not reached. ROC-AUC measures ranking, not classification accuracy.
+Multi-hop logistic regression has the highest measured accuracy (90.77%) and macro-F1 (90.16%). Kernel/diffusion achieves 89.91% accuracy (-0.86 percentage points relative to multi-hop) but lower top-label calibration error (0.0300 versus 0.0660). ROC-AUC measures ranking, not classification accuracy.
 
 ## Selected configurations
 
@@ -60,4 +60,4 @@ Multi-hop logistic regression has the highest measured accuracy (90.77%) and mac
 - Overlapping splits provide descriptive sensitivity checks, not independent validation.
 - Kernel/diffusion was evaluated only on seed 42.
 - The benchmark has been reused during development; no independent external dataset or state-of-the-art claim is established.
-- Confusion matrices, reliability bins and the full validation candidate grid are available in the raw results JSON.
+- Confusion matrices, reliability bins and the kernel/diffusion validation candidate grid are available in the raw results JSON.
